@@ -1,103 +1,82 @@
 import streamlit as st
 import json
-import random
+import pandas as pd
+import requests
 
-# Initial configuration JSON blueprint
-if 'game_config' not in st.session_state:
-    st.session_state.game_config = {
-        "title": "Project Apollo: The Ultimate QC Reality Show",
-        "episodes": [
-            {"round": 1, "name": "The Smooth Opening", "chance": 0.15},
-            {"round": 2, "name": "The Short Squeeze Twist", "chance": 0.60},
-            {"round": 3, "name": "Flash Crash Mayhem", "chance": 0.85},
-            {"round": 4, "name": "The Regulatory Crackdown", "chance": 0.40},
-            {"round": 5, "name": "Grand Finale: Infinite Volatility", "chance": 0.95}
-        ]
-    }
+st.set_page_config(page_title="Project Apollo Production Suite", layout="wide")
+st.title("🛡️ Project Apollo: Enterprise Portfolio Index Control")
 
-# Initialize game states inside session storage memory
-if 'round' not in st.session_state:
-    st.session_state.round = 1
-    st.session_state.health = 100
-    st.session_state.quality_score = 100.0
-    st.session_state.index_value = 1000.00
-    st.session_state.game_over = False
-    st.session_state.logs = ["🟢 Production pipeline initiated successfully."]
-    st.session_state.anomaly_active = False
+# 1. System Configuration Schema (Real-Use Matrix)
+SYSTEM_CONFIG = {
+    "index_name": "Robinhood Strategic Quality Index",
+    "monitored_assets": ["HOOD", "AAPL", "NVDA", "MSFT"],
+    "z_score_threshold": 3.0
+}
 
-st.set_page_config(page_title="Project Apollo", layout="wide")
-st.title("🎬 Project Apollo: The QC Reality Show Game")
-st.caption("Deploying Quality Control Automation frameworks on Robinhood Index Portfolios.")
+# 2. Live Data Ingestion Engine
+@st.cache_data(ttl=60) # Caches results for 60 seconds to comply with rate limits
+def fetch_production_market_data(ticker):
+    """Fetches real-time market data from a public API provider gateway"""
+    url = f"https://yahoo.com{ticker}?interval=1m&range=1d"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        meta = data["chart"]["result"]["meta"]
+        current_price = meta["regularMarketPrice"]
+        previous_close = meta["chartPreviousClose"]
+        return {"price": current_price, "prev_close": previous_close, "status": "ONLINE"}
+    except Exception as e:
+        return {"price": None, "prev_close": None, "status": "OFFLINE"}
 
-# Sidebar Metrics
-st.sidebar.header("📊 Live Pipeline Metrics")
-st.sidebar.metric("Pipeline Health", f"{st.session_state.health}%")
-st.sidebar.progress(st.session_state.health / 100.0)
+# 3. Running System State Initializer
+if 'system_logs' not in st.session_state:
+    st.session_state.system_logs = ["🟢 Operational Monitoring Framework Initiated Ready."]
 
-st.sidebar.metric("Quality Score", f"{st.session_state.quality_score}%")
-st.sidebar.metric("Project Index Value", f"${st.session_state.index_value:,.2f}")
+# 4. Interface Metrics Dashboard
+st.subheader("📊 Real-Time Production Asset Ledger")
+asset_rows = []
+pipeline_failures = 0
 
-# Check game over conditions
-if st.session_state.health <= 0 or st.session_state.quality_score < 40:
-    st.session_state.game_over = True
-
-if st.session_state.round > len(st.session_state.game_config["episodes"]):
-    st.session_state.game_over = True
-
-# Main Game Panel
-if not st.session_state.game_over:
-    current_episode = st.session_state.game_config["episodes"][st.session_state.round - 1]
-    st.subheader(f"Episode {st.session_state.round}: {current_episode['name']}")
+for ticker in SYSTEM_CONFIG["monitored_assets"]:
+    ticker_data = fetch_production_market_data(ticker)
     
-    # Trigger Event Step
-    if st.button("🚀 Roll Market Conditions / Trigger Next Feed"):
-        st.session_state.anomaly_active = random.random() < current_episode["chance"]
-        if st.session_state.anomaly_active:
-            st.session_state.logs.insert(0, f"⚠️ [ROUND {st.session_state.round}] TWIST: High volatility anomaly detected on ingestion stream!")
-        else:
-            st.session_state.logs.insert(0, f"✅ [ROUND {st.session_state.round}] Clean data stream verified. Ingestion normal.")
-            # Normal calculation variance
-            st.session_state.index_value *= random.uniform(0.98, 1.05)
-            st.session_state.round += 1
-            st.rerun()
-
-    # Active Anomaly Decision Handling
-    if st.session_state.anomaly_active:
-        st.error("🚨 CRITICAL METRIC ALERT: QC-DATA-001 Fail! Packet streams show invalid Z-Score values.")
-        st.write("Pick your mitigation strategy to survive the live broadcast:")
+    if ticker_data["status"] == "ONLINE":
+        # QC-DATA-001: Run Real Anomaly Detection Filter
+        price_variance_pct = abs((ticker_data["price"] - ticker_data["prev_close"]) / ticker_data["prev_close"]) * 100
         
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🛡️ DROP BAD PACKETS (Safe Integration)"):
-                st.session_state.health -= 5
-                st.session_state.quality_score = max(50.0, st.session_state.quality_score - 2.5)
-                st.session_state.logs.insert(0, f"🟢 Mitigated Round {st.session_state.round}: Dropped bad packets. Math integrity saved.")
-                st.session_state.anomaly_active = False
-                st.session_state.round += 1
-                st.rerun()
-        with col2:
-            if st.button("💥 PASS RAW DATA (Risk Ledger Contamination)"):
-                st.session_state.health -= 35
-                st.session_state.quality_score -= 25.0
-                st.session_state.index_value *= random.uniform(0.55, 1.45)
-                st.session_state.logs.insert(0, f"🔴 Failed Round {st.session_state.round}: Raw data flooded DB. Ledger data corrupted.")
-                st.session_state.anomaly_active = False
-                st.session_state.round += 1
-                st.rerun()
-
-else:
-    st.header("🏁 Show Determination Results")
-    if st.session_state.health <= 0 or st.session_state.quality_score < 40:
-        st.error("❌ SYSTEM COLLAPSE: Your pipeline crashed on live television. The board has eliminated you.")
+        # Flag anomalies if variance swings more than 10% inside a single day trading frame
+        if price_variance_pct > 10.0:
+            status_flag = "⚠️ ANOMALY DETECTED"
+            pipeline_failures += 1
+            st.session_state.system_logs.insert(0, f"❌ [QC-DATA-001 FAIL] Volatility breach detected on {ticker}: {price_variance_pct:.2f}% variance swing!")
+        else:
+            status_flag = "🟢 PASSED"
+            
+        asset_rows.append({
+            "Asset": ticker,
+            "Live Price ($)": f"{ticker_data['price']:.2f}",
+            "Daily Variance (%)": f"{price_variance_pct:.2f}%",
+            "QC Filter Status": status_flag
+        })
     else:
-        st.success("🏆 CONGRATULATIONS! Your system survived the reality show grid. You win!")
-        st.balloons()
-    
-    if st.button("🔄 Restart New Game Session"):
-        st.session_state.clear()
-        st.rerun()
+        pipeline_failures += 1
+        st.session_state.system_logs.insert(0, f"⚠️ [QC-DATA-002 FAIL] Data ingestion gap found for ticker {ticker}. Stream offline.")
+        asset_rows.append({"Asset": ticker, "Live Price ($)": "N/A", "Daily Variance (%)": "N/A", "QC Filter Status": "🚨 STREAM OFFLINE"})
 
-# Operations Console Log View
-st.subheader("🖥️ Operations Console Output Log")
-for log in st.session_state.logs:
+# Render Production Table Data
+st.table(pd.DataFrame(asset_rows))
+
+# Summary Metrics Panel
+col1, col2 = st.columns(2)
+with col1:
+    health_pct = max(0, 100 - (pipeline_failures * 25))
+    st.metric("Overall Operational Pipeline Health", f"{health_pct}%")
+    st.progress(health_pct / 100.0)
+with col2:
+    st.metric("Active Tracked System Components", len(SYSTEM_CONFIG["monitored_assets"]))
+
+# Live System Infrastructure Logging Readout
+st.subheader("🖥️ Core System System Log Output")
+for log in st.session_state.system_logs[:10]:
     st.text(log)
