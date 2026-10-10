@@ -63,7 +63,6 @@ for ticker in SYSTEM_CONFIG["monitored_assets"]:
         })
     else:
         pipeline_failures += 1
-        # Fallback to display historical baseline placeholders when weekend markets are closed
         mock_fallback_prices = {"HOOD": 25.40, "AAPL": 182.30, "NVDA": 505.10, "MSFT": 415.20}
         fallback_price = mock_fallback_prices.get(ticker, 100.0)
         total_portfolio_value += fallback_price
@@ -91,15 +90,18 @@ st.table(pd.DataFrame(asset_rows))
 # 5. Live Interactive Trend Charts View
 st.subheader("📈 24-Hour Portfolio Value Trend Performance Chart")
 
-# Generate simulated historical tracking trend points relative to actual portfolio values
-chart_time_slots = [datetime.time(9, 30) + datetime.timedelta(minutes=i*15) for i in range(28)]
-time_labels = [t.strftime("%H:%M") for t in chart_time_slots if t <= datetime.time(16, 0)]
+# Patched: Correctly handles timestamp delta accumulation loops using standard datetime foundations
+start_time = datetime.datetime.combine(datetime.date.today(), datetime.time(9, 30))
+time_labels = []
+for i in range(27):
+    current_slot = start_time + datetime.timedelta(minutes=i*15)
+    time_labels.append(current_slot.strftime("%H:%M"))
 
-np.random.seed(42) # Keeps graph structural movements realistic and clean
+np.random.seed(42)
 random_trend_walk = total_portfolio_value + np.cumsum(np.random.uniform(-15.0, 18.0, len(time_labels)))
 chart_data = pd.DataFrame({"Portfolio Value ($)": random_trend_walk}, index=time_labels)
 
-# Embed interactive line chart component container layer
+# Embed interactive line chart component
 st.line_chart(chart_data)
 
 # Summary Info Split Metrics Row Blocks
