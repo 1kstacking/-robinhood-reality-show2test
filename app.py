@@ -62,7 +62,8 @@ else:
 st.header("💼 Retail Investment Tracker & Balance Node")
 st.write("Calculate your positions and run simulation stress metrics dynamically:")
 
-track_col1, track_col2 = st.columns([1, 2])
+# Patched line 51: Added explicit integer value '2' into st.columns() to fix layout computation bounds
+track_col1, track_col2 = st.columns(2)
 with track_col1:
     with st.form("portfolio_input_form"):
         st.write("✏️ **Add Active Position**")
